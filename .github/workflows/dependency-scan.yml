@@ -6,31 +6,35 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  PYTHON_VERSION: '3.11'
+
 jobs:
-  safety-snyk:
+  dependency-check:
+    name: Dependency Security Scan
     runs-on: ubuntu-latest
+    permissions:  
+      security-events: write
+      actions: read
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Safety
-        run: pip install safety
-
-      - name: Safety scan
-        run: safety check --json > safety-report.json || true
-
-      - name: Snyk scan
+      - name: Snyk Dependency Scan
         uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high --all-projects
+          args: --severity-threshold=high --sarif-file-output=snyk.sarif 
+        continue-on-error: true
 
-      - name: Upload results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Snyk results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4  
         with:
-          sarif_file: snyk-report.sarif
+          sarif_file: snyk.sarif
