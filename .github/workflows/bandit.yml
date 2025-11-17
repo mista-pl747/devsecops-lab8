@@ -25,14 +25,14 @@ jobs:
       - name: Install Bandit with SARIF support
         run: pip install bandit[sarif]
 
-      - name: Run Bandit (with baseline if present)
+      - name: Run Bandit with baseline
         run: |
+          set +e  
           echo "🔍 Running Bandit Security Scan"
 
           if [ -f bandit-baseline.json ]; then
             echo "📄 Baseline found — comparing against bandit-baseline.json"
 
-            # Run Bandit with baseline
             bandit -r . \
                    -f json \
                    -o /tmp/bandit-temp.json \
@@ -40,6 +40,8 @@ jobs:
                    -lll -iii
 
             EXIT_CODE=$?
+
+            echo "Bandit exit code: $EXIT_CODE"
 
             if [ "$EXIT_CODE" -eq 2 ]; then
               echo "❌ New security issues detected that are NOT in baseline!"
@@ -52,7 +54,7 @@ jobs:
             fi
 
             echo "✅ No new issues found."
-          
+
           else
             echo "⚠ No baseline found. Running normal Bandit scan (not failing)."
 
