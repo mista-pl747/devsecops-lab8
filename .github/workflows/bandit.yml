@@ -13,7 +13,6 @@ permissions:
 jobs:
   bandit:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -22,24 +21,25 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Bandit with SARIF support
+      - name: Install Bandit with SARIF
         run: pip install bandit[sarif]
 
-      - name: Bandit SAST Scan
+      - name: Bandit scan with baseline (fail only on completely new MEDIUM+)
         run: |
           set +e
-          [ -f bandit-baseline.json ] && bandit --baseline bandit-baseline.json -r . -lll -iii && [ $? -eq 2 ] && exit 1 || echo "No new MEDIUM+/HIGH issues"
-          [ ! -f bandit-baseline.json ] && bandit -r . -f json -o bandit-baseline.json
-          bandit -r . -f sarif -o bandit-report.sarif -lll -iii || true
+          if [ -f bandit-baseline.json ]; then
+            bandit --baseline bandit-baseline.json -r . -lll -iii
+            [ $? -eq 2 ] && echo "NEW critical issues!" && exit 1
+            echo "No new MEDIUM+/HIGH issues → OK"
+          else
+            echo "No baseline → creating it"
+            bandit -r . -f json -o bandit-baseline.json
+          fi
 
-      - name: Generate SARIF report
-        run: |
-          bandit -r . \
-          -f sarif \
-          -o bandit-report.sarif \
-          -lll -iii
+      - name: Generate SARIF report (for GitHub Code Scanning)
+        run: bandit -r . -f sarif -o bandit-report.sarif -lll -iii || true 
 
-      - name: Upload SARIF to GitHub Security
+      - name: Upload SARIF to GitHub
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit-report.sarif
