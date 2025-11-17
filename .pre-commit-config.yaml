@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: bandit
+        name: Bandit SAST – блокування MEDIUM+ severity та confidence
+        entry: bandit
+        language: python            
+        args: [-r, ., -f, json, -o, bandit-report.sarif, -lll, -iii, -b, bandit-baseline.json]
+        types: [python]              
+        pass_filenames: false
