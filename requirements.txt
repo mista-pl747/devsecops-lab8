@@ -3,3 +3,4 @@ requests==2.25.1
 jinja2==2.11.3        
 #sqlite3
 #pickle
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
