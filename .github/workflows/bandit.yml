@@ -22,13 +22,17 @@ jobs:
           python-version: '3.11'
 
       - name: Install Bandit
-        run: pip install bandit bandit-sarif-formatter
+        run: pip install bandit[sarif]  
+      - name: Run Bandit with baseline (JSON, fail on new MEDIUM+ issues)
+        run: |
+          bandit -r . -f json -o /tmp/bandit-temp.json \
+                 -lll -iii \                
+                 -b bandit-baseline.json || exit 1 
 
-      - name: Run Bandit with baseline (fail on new MEDIUM+ issues)
+      - name: Generate SARIF report (without baseline, for GitHub display)
         run: |
           bandit -r . -f sarif -o bandit-report.sarif \
-                 -lll -iii \                 # MEDIUM+HIGH severity & confidence
-                 -b bandit-baseline.json || exit 1  # блокує PR
+                 -lll -iii                  
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
