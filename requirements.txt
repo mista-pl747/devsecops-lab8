@@ -3,9 +3,10 @@
 #jinja2==2.11.3        
 #sqlite3
 #pickle
-Flask==2.0.1            # CVE-2023-30861 (високий)
+Flask==2.2.5            # CVE-2023-30861 (високий)
 Jinja2==2.11.3          # CVE-2020-28493
-Werkzeug==2.0.3         # частина Flask 2.0.1
+Werkzeug==3.0.6         # частина Flask 2.0.1
 click==8.0.4            # має відомі проблеми
 itsdangerous==2.0.1     # частина Flask
 markupsafe==2.0.1       # стара версія
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
