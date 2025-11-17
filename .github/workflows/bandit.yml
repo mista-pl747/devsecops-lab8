@@ -13,6 +13,7 @@ permissions:
 jobs:
   bandit:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,26 +25,51 @@ jobs:
       - name: Install Bandit with SARIF support
         run: pip install bandit[sarif]
 
-      # Optional: create baseline on first run 
-      #- name: Generate baseline (run once)
-      #  run: bandit -r . -f json --baseline bandit-baseline.json
-
-      - name: Run Bandit with baseline (fail only on new MEDIUM+/HIGH issues)
+      - name: Run Bandit (with baseline if present)
         run: |
-          bandit -r . \
-                 -f json \
-                 -o /tmp/bandit-temp.json \
-                 --baseline bandit-baseline.json \
-                 -lll -iii || echo "Baseline check failed (new issues found or baseline missing)" && exit 1
+          echo "🔍 Running Bandit Security Scan"
 
-      - name: Generate full SARIF report for GitHub Code Scanning
+          if [ -f bandit-baseline.json ]; then
+            echo "📄 Baseline found — comparing against bandit-baseline.json"
+
+            # Run Bandit with baseline
+            bandit -r . \
+                   -f json \
+                   -o /tmp/bandit-temp.json \
+                   --baseline bandit-baseline.json \
+                   -lll -iii
+
+            EXIT_CODE=$?
+
+            if [ "$EXIT_CODE" -eq 2 ]; then
+              echo "❌ New security issues detected that are NOT in baseline!"
+              exit 1
+            fi
+
+            if [ "$EXIT_CODE" -ne 0 ]; then
+              echo "⚠ Bandit encountered an internal error (EXIT: $EXIT_CODE)"
+              exit $EXIT_CODE
+            fi
+
+            echo "✅ No new issues found."
+          
+          else
+            echo "⚠ No baseline found. Running normal Bandit scan (not failing)."
+
+            bandit -r . \
+                   -f json \
+                   -o /tmp/bandit-temp.json \
+                   -lll -iii || true
+          fi
+
+      - name: Generate SARIF report
         run: |
           bandit -r . \
                  -f sarif \
                  -o bandit-report.sarif \
                  -lll -iii
 
-      - name: Upload SARIF to GitHub Code Scanning
+      - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit-report.sarif
