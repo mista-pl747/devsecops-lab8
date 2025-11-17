@@ -21,20 +21,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Bandit
-        run: pip install bandit[sarif]  
-      - name: Run Bandit with baseline (JSON, fail on new MEDIUM+ issues)
-        run: |
-          bandit -r . -f json -o /tmp/bandit-temp.json \
-                 -lll -iii \                
-                 -b bandit-baseline.json || exit 1 
+      - name: Install Bandit with SARIF support
+        run: pip install bandit[sarif]
 
-      - name: Generate SARIF report (without baseline, for GitHub display)
+      # Optional: create baseline on first run 
+      # - name: Generate baseline (run once)
+      #   run: bandit -r . -f json --baseline bandit-baseline.json
+
+      - name: Run Bandit with baseline (fail only on new MEDIUM+/HIGH issues)
         run: |
-          bandit -r . -f sarif -o bandit-report.sarif \
-                 -lll -iii                  
+          bandit -r . \
+                 -f json \
+                 -o /tmp/bandit-temp.json \
+                 --baseline bandit-baseline.json \
+                 -lll -iii || echo "Baseline check failed (new issues found or baseline missing)" && exit 1
+
+      - name: Generate full SARIF report for GitHub Code Scanning
+        run: |
+          bandit -r . \
+                 -f sarif \
+                 -o bandit-report.sarif \
+                 -lll -iii
 
       - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit-report.sarif
