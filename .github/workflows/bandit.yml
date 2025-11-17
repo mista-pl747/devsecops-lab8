@@ -25,44 +25,21 @@ jobs:
       - name: Install Bandit with SARIF support
         run: pip install bandit[sarif]
 
-      - name: Run Bandit with baseline
+      - name: Run Bandit (baseline + SARIF)
         run: |
-          set +e  
-          echo "🔍 Running Bandit Security Scan"
+          set +e
+          echo "Running Bandit scan..."
 
           if [ -f bandit-baseline.json ]; then
-            echo "📄 Baseline found — comparing against bandit-baseline.json"
-
-            bandit -r . \
-                   -f json \
-                   -o /tmp/bandit-temp.json \
-                   --baseline bandit-baseline.json \
-                   -lll -iii
-
-            EXIT_CODE=$?
-
-            echo "Bandit exit code: $EXIT_CODE"
-
-            if [ "$EXIT_CODE" -eq 2 ]; then
-              echo "❌ New security issues detected that are NOT in baseline!"
-              exit 1
-            fi
-
-            if [ "$EXIT_CODE" -ne 0 ]; then
-              echo "⚠ Bandit encountered an internal error (EXIT: $EXIT_CODE)"
-              exit $EXIT_CODE
-            fi
-
-            echo "✅ No new issues found."
-
+            bandit --baseline bandit-baseline.json -r . -lll -iii
+            [ $? -eq 2 ] && exit 1
+            echo "No new critical issues → OK"
           else
-            echo "⚠ No baseline found. Running normal Bandit scan (not failing)."
-
-            bandit -r . \
-                   -f json \
-                   -o /tmp/bandit-temp.json \
-                   -lll -iii || true
+            echo "No baseline → creating one"
+            bandit -r . -f json -o bandit-baseline.json
           fi
+
+          bandit -r . -f sarif -o bandit-report.sarif -lll -iii
 
       - name: Generate SARIF report
         run: |
