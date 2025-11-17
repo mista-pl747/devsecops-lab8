@@ -25,8 +25,8 @@ jobs:
         run: pip install bandit[sarif]
 
       # Optional: create baseline on first run 
-      - name: Generate baseline (run once)
-        run: bandit -r . -f json --baseline bandit-baseline.json
+      #- name: Generate baseline (run once)
+      #  run: bandit -r . -f json --baseline bandit-baseline.json
 
       - name: Run Bandit with baseline (fail only on new MEDIUM+/HIGH issues)
         run: |
